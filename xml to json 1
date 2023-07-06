@@ -1,32 +1,9 @@
-To convert XML to JSON in Java, you can use a combination of libraries such as Jackson and JAXB (Java Architecture for XML Binding). Here's an example of how you can achieve this in a Maven-based Spring Boot project:
+Certainly! Here's the modified code for all the files:
 
-1. Add the necessary dependencies to your Maven `pom.xml` file:
-
-```xml
-<dependencies>
-    <!-- Spring Boot -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter</artifactId>
-    </dependency>
-    
-    <!-- Jackson -->
-    <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-    </dependency>
-    
-    <!-- JAXB -->
-    <dependency>
-        <groupId>javax.xml.bind</groupId>
-        <artifactId>jaxb-api</artifactId>
-    </dependency>
-</dependencies>
-```
-
-2. Create a Java class to represent the XML structure. You can annotate the class and its fields using JAXB annotations to map it to the XML structure. For example:
+1. `XmlData.java` in the model or domain package:
 
 ```java
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
@@ -41,7 +18,30 @@ public class XmlData {
 }
 ```
 
-3. Create a class that will handle the XML-to-JSON conversion. For example:
+2. `JsonData.java` in the model or domain package:
+
+```java
+public class JsonData {
+    private String fieldC;
+
+    public JsonData() {
+    }
+
+    public JsonData(String fieldC) {
+        this.fieldC = fieldC;
+    }
+
+    public String getFieldC() {
+        return fieldC;
+    }
+
+    public void setFieldC(String fieldC) {
+        this.fieldC = fieldC;
+    }
+}
+```
+
+3. `XmlToJsonConverter.java`:
 
 ```java
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,17 +50,16 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import java.io.StringReader;
+import java.io.File;
 
 public class XmlToJsonConverter {
-    public static String convertXmlToJson(String xml) throws JAXBException {
+    public static String convertXmlToJson(File xmlFile) throws JAXBException {
         // Create JAXB context and unmarshaller
         JAXBContext jaxbContext = JAXBContext.newInstance(XmlData.class);
         Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
         // Parse the XML
-        StringReader reader = new StringReader(xml);
-        XmlData xmlData = (XmlData) jaxbUnmarshaller.unmarshal(reader);
+        XmlData xmlData = (XmlData) jaxbUnmarshaller.unmarshal(xmlFile);
 
         // Perform conditional logic and populate JSON object
         String fieldC;
@@ -71,32 +70,19 @@ public class XmlToJsonConverter {
         }
 
         // Create JSON object
+        JsonData jsonData = new JsonData(fieldC);
+
+        // Convert JSON object to JSON string
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        String json = objectMapper.writeValueAsString(new JsonData(fieldC));
+        String json = objectMapper.writeValueAsString(jsonData);
 
         return json;
-    }
-
-    private static class JsonData {
-        private String fieldC;
-
-        public JsonData(String fieldC) {
-            this.fieldC = fieldC;
-        }
-
-        public String getFieldC() {
-            return fieldC;
-        }
-
-        public void setFieldC(String fieldC) {
-            this.fieldC = fieldC;
-        }
     }
 }
 ```
 
-4. In your Spring Boot application, you can use the `XmlToJsonConverter` class to convert XML to JSON. Here's an example controller that receives an XML string and returns the corresponding JSON:
+4. `ConverterController.java`:
 
 ```java
 import org.springframework.web.bind.annotation.PostMapping;
@@ -110,7 +96,8 @@ public class ConverterController {
     @PostMapping("/convert")
     public String convertXmlToJson(@RequestBody String xml) {
         try {
-            String json = XmlToJsonConverter.convertXmlToJson(xml);
+            File xmlFile = new File("path/to/xml/file.xml"); // Specify the path to your XML file
+            String json = XmlToJsonConverter.convertXmlToJson(xmlFile);
             return json;
         } catch (JAXBException e) {
             e.printStackTrace();
@@ -120,4 +107,4 @@ public class ConverterController {
 }
 ```
 
-With these steps, you can create an endpoint in your Spring Boot application that accepts XML as input, performs the conversion to
+Ensure that you adjust the file paths and package names according to your project structure.
