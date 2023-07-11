@@ -1,0 +1,101 @@
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import java.io.File;
+import java.io.IOException;
+
+@JacksonXmlRootElement(localName = "XmlData")
+public class XmlData {
+    @JacksonXmlProperty(localName = "fieldA")
+    @JsonAlias({"customFieldAName"})
+    private int fieldA;
+
+    @JacksonXmlProperty(localName = "fieldB")
+    private String fieldB;
+
+    @JacksonXmlProperty(localName = "fieldC")
+    private String fieldC;
+
+    @JacksonXmlProperty(localName = "fieldD")
+    private String fieldD;
+
+    @JsonIgnore
+    private boolean excludeField;
+
+    // Constructors, getters, setters, etc.
+
+    // Custom serialization to exclude field based on condition
+    @JsonIgnore
+    public boolean isExcludeField() {
+        return excludeField;
+    }
+
+    public void setExcludeField(boolean excludeField) {
+        this.excludeField = excludeField;
+    }
+
+    public static class CustomJsonSerializer extends StdSerializer<XmlData> {
+        public CustomJsonSerializer() {
+            this(null);
+        }
+
+        public CustomJsonSerializer(Class<XmlData> t) {
+            super(t);
+        }
+
+        @Override
+        public void serialize(XmlData value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            if (!value.isExcludeField()) {
+                gen.writeStartObject();
+
+                // Perform conditional logic for fieldC
+                String fieldC;
+                if (value.getFieldA() == 2) {
+                    fieldC = value.getFieldB();
+                } else {
+                    fieldC = value.getFieldD();
+                }
+
+                gen.writeStringField("fieldC", fieldC);
+
+                // Serialize other fields as needed
+                gen.writeNumberField("customFieldAName", value.getFieldA());
+                gen.writeStringField("customFieldBName", value.getFieldB());
+
+                gen.writeEndObject();
+            }
+        }
+    }
+}
+
+public class XmlToJsonConverter {
+    public static String convertXmlToJson(File xmlFile) throws JAXBException, IOException {
+        // Create JAXB context and unmarshaller
+        JAXBContext jaxbContext = JAXBContext.newInstance(XmlData.class);
+        Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+
+        // Parse the XML
+        XmlData xmlData = (XmlData) jaxbUnmarshaller.unmarshal(xmlFile);
+
+        // Create ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        objectMapper.registerModule(new SimpleModule().addSerializer(XmlData.class, new XmlData.CustomJsonSerializer()));
+
+        // Convert XML object to JSON string
+        String json = objectMapper.writeValueAsString(xmlData);
+
+        return json;
+    }
+}
